@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Request, Header
+from fastapi.responses import RedirectResponse
 from pydantic import HttpUrl
 from src.models.api_key import APIKey
 from src.models.url_shortener import URL
@@ -10,14 +11,12 @@ from src.services.rate_limiter import RateLimiter
 from src.utils.generate_signature import verify_signature
 
 router = APIRouter(
-    prefix="/rate_limit/v1",
-    tags=["rate_limit"],
+    prefix="/url_shortener/v1",
+    tags=["url_shortener"],
     responses={404: {"description": "Not found"}},
 )
 
-MAX_ATTEMPTS = 5  # Maximum number of allowed attempts
-
-@router.post("/shorten_url",response_model=URL, status_code=201)
+@router.post("/shorten",response_model=URL, status_code=201)
 async def shorten_url(
     request: Request, 
     api_key: Annotated[str, Header(alias="X-API-Key")],
@@ -54,6 +53,7 @@ async def shorten_url(
             capacity=current_user.bucket_size,
             refill_rate=current_user.refill_rate,
         )
+        print(f"Rate limiting check for user {user_id}: allowed={allowed}, remaining={remaining}, retry_after={retry_after}")
 
         if not allowed:
             raise HTTPException(
@@ -72,3 +72,18 @@ async def shorten_url(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/redirect/{short_url}")
+async def redirect_short_url(short_url: str):
+    link = await URL.find_one(URL.short_url == short_url)
+
+    if link is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Short URL not found",
+        )
+
+    return RedirectResponse(
+        url=link.original_url,
+        status_code=302,
+    )
