@@ -1,0 +1,93 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: url_shortener_mongodb
+    restart: unless-stopped
+    hostname: mongodb
+    env_file:
+      - .env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_INITDB_ROOT_PASSWORD}
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - db:/data/db
+    networks:
+      - url_shortener_network
+  backend:
+    build:
+      context: .
+      dockerfile: src/Dockerfile
+    container_name: url_shortener_backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3100"
+    env_file:
+      - .env
+    depends_on:
+      mongodb:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    networks:
+      - url_shortener_network
+  redis:
+    image: redis:latest
+    container_name: url_shortener_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    networks:
+      - url_shortener_network
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  mongo-express:
+    image: mongo-express:latest
+    container_name: url_shortener_mongo_ui
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_URL: ${MONGODB_URI}
+      ME_CONFIG_BASICAUTH_ENABLED: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_UI_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_UI_PASSWORD}
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      - mongodb
+    networks:
+      - url_shortener_network
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: url_shortener_redis_ui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5540:5540"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - url_shortener_network
+volumes:
+  db:
+    driver: local
+  configdb:
+    driver: local
+  redis:
+    driver: local
+  mongot:
+    driver: local
+  redisinsight_data:
+    driver: local
+networks:
+  url_shortener_network:
+    driver: bridge
+    name: url_shortener_network
