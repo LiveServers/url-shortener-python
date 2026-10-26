@@ -5,19 +5,18 @@ from beanie import init_beanie
 from pymongo import AsyncMongoClient
 from redis.asyncio import Redis
 from starlette.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+
+from src.config import settings
 from src.models.user import User
 from src.models.url_shortener import URL
-from  src.models.api_key import APIKey
-import os
+from src.models.api_key import APIKey
 from src.services.rate_limiter import RateLimiter
 
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    client = AsyncMongoClient(os.getenv("MONGODB_URI"))
-    redis_client = Redis.from_url(os.getenv("REDIS_URL", ""), decode_responses=True)
+    client = AsyncMongoClient(settings.mongodb_uri)
+    redis_client = Redis.from_url(settings.redis_url, decode_responses=True)
 
     try:
         await init_beanie(

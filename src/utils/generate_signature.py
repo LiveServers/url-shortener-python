@@ -16,8 +16,6 @@ def generate_signature(api_key: str, user_id: PydanticObjectId) -> tuple[str, st
         str: A new API signature.
     """
     timestamp = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-    print(f"Timestamp: {timestamp}")  # Debugging line
-
 
     hmac_new = hmac.new(api_key.encode("utf-8"), digestmod=hashlib.sha256)
     hmac_new.update(timestamp.encode("utf-8"))
@@ -25,7 +23,6 @@ def generate_signature(api_key: str, user_id: PydanticObjectId) -> tuple[str, st
     hmac_new.update("sid_request".encode("utf-8"))
 
     signature = base64.b64encode(hmac_new.digest()).decode("utf-8")
-    print(f"Generated signature: {signature} AND Timestamp: {timestamp}")  # Debugging line
     return signature, timestamp
 
 def verify_signature(api_key: str, user_id: PydanticObjectId, signature: str, timestamp: str) -> bool:
@@ -47,5 +44,4 @@ def verify_signature(api_key: str, user_id: PydanticObjectId, signature: str, ti
     hmac_new.update("sid_request".encode("utf-8"))
 
     expected_signature = base64.b64encode(hmac_new.digest()).decode("utf-8")
-    print(f"Expected signature: {expected_signature}")  # Debugging line
     return hmac.compare_digest(expected_signature, signature)

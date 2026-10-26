@@ -20,7 +20,6 @@ async def create_api_key(userid: PydanticObjectId):
         """
     try:
         existing_user = await User.find_one(User.id == userid)
-        print(f"Existing user: {existing_user}")  # Debugging line
         if not existing_user:
             raise HTTPException(status_code=404, detail="User not found")
 
