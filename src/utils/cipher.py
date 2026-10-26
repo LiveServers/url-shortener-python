@@ -1,10 +1,5 @@
-import os
-
 from cryptography.fernet import Fernet
-from dotenv import load_dotenv
 
-load_dotenv()
+from src.config import settings
 
-secret = str(os.getenv("API_SECRET_ENCRYPTION_KEY"))
-
-cipher = Fernet(secret.encode("ascii"))
+cipher = Fernet(settings.api_secret_encryption_key.encode("ascii"))
